@@ -15,20 +15,8 @@ RANDOM_CIRCLE_CONFIG = {
     "blur": 10,
     "width": 500,
     "height": 300,
-    "density": 0.8,
+    "density": 0.9,
     "maxCircleRadius": 0.2,
-    "minCircleRadius": 0.1
-}
-
-RANDOM_BRANCH_CONFIG = {
-    "random": True,
-    "branch": True,
-    "color": True,
-    "blur": 3,
-    "width": 500,
-    "height": 300,
-    "density": 0.1,
-    "maxCircleRadius": 0.15,
     "minCircleRadius": 0.1
 }
 
@@ -40,6 +28,18 @@ EVEN_CIRCLE_CONFIG = {
     "width": 500,
     "height": 300,
     "density": 0.9,
+    "maxCircleRadius": 0.3,
+    "minCircleRadius": 0.15
+}
+
+RANDOM_BRANCH_CONFIG = {
+    "random": True,
+    "branch": True,
+    "color": True,
+    "blur": 3,
+    "width": 500,
+    "height": 300,
+    "density": 0.8,
     "maxCircleRadius": 0.2,
     "minCircleRadius": 0.1
 }
@@ -48,12 +48,12 @@ EVEN_BRANCH_CONFIG = {
     "random": False,
     "branch": True,
     "color": True,
-    "blur": 5,
+    "blur": 6,
     "width": 500,
     "height": 300,
-    "density": 0.8,
-    "maxCircleRadius": 0.1,
-    "minCircleRadius": 0.05
+    "density": 0.9,
+    "maxCircleRadius": 0.2,
+    "minCircleRadius": 0.1
 }
 
 class Circle:
@@ -83,19 +83,20 @@ class Sculptor:
         for i in range(len(nodes)):
             node = nodes[i]
             circle = circles[i]
+            circle_coords = np.array([circle.x, circle.y])
             others = [n for n in nodes if n[0] != node[0] or n[1] != node[1]]
             deltas = others - node
             dist = np.einsum('ij,ij->i', deltas, deltas)
-            closest = [others[x] for x in np.argpartition(dist, 4)[:4]]
+            closest = [others[x] for x in np.argpartition(dist, 5)[:5]]
             for other in closest:
                 min_x = min(node[0], other[0])
                 min_y = min(node[1], other[1])
                 max_x = max(node[0], other[0])
                 max_y = max(node[1], other[1])   
-                for x in range(max(0, min_x - circle.radius), min(self.config["width"], max_x + circle.radius)):
-                    for y in range(max(0, min_y - circle.radius), min(self.config["height"], max_y + circle.radius)):
-                        d = np.linalg.norm(np.cross(other - node, node - [x, y]))/np.linalg.norm(closest-node)
-                        self.field[y][x] += max(0, 1 - d / circle.radius)
+                for x in range(max(0, min_x), min(self.config["width"], max_x)):
+                    for y in range(max(0, min_y), min(self.config["height"], max_y)):
+                        d = np.linalg.norm(np.cross(other - node, node - [x, y]))/np.linalg.norm(other-node)
+                        self.field[y][x] += max(0, 1 - ((d / circle.radius) ** 2) * 20)
 
     def apply_circles(self, circles: list[Circle]) -> None:
         for circle in circles:
@@ -107,10 +108,12 @@ class Sculptor:
 
     def place_circles(self):
         min_side = min(self.config['width'], self.config['height'])
-        num_circles = min_side * self.config["maxCircleRadius"] * self.config['density']
+        num_circles = min_side * (self.config["minCircleRadius"] + self.config["maxCircleRadius"]) / 2 * self.config['density'] / 2
         min_radius = int(min_side * self.config['minCircleRadius'])
         max_radius = int(min_side * self.config['maxCircleRadius'])
 
+        if num_circles < 5:
+            raise Exception("Not enough circles: please adjust config")
         circles = []
         if self.config["random"] == True:
             for i in range(int(num_circles)):
@@ -164,6 +167,8 @@ class Sculptor:
             self.apply_circles(circles)
         
     def soften(self):
+        self.field = np.clip(self.field, 0, 2)
+        self.field = (self.field - np.min(self.field))/(np.max(self.field) - np.min(self.field))
         self.field = gaussian_filter(self.field, sigma=self.config['blur'])
         self.field = (self.field - np.min(self.field))/(np.max(self.field) - np.min(self.field))
 
