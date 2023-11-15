@@ -7,14 +7,14 @@ from matplotlib import cm
 import numpy as np
 from PIL import Image
 
-
 DEFAULT_CONFIG = {
-  "color": False,
-  "width": 300,
-  "height": 300,
-  "density": 0.1,
-  "maxCircleRadius": 0.2,
-  "minCircleRadius": 0.05
+    "distribution": "RANDOM",
+    "color": True,
+    "width": 500,
+    "height": 300,
+    "density": 0.1,
+    "maxCircleRadius": 0.2,
+    "minCircleRadius": 0.05
 }
 
 class Circle:
@@ -53,17 +53,16 @@ class Sculptor:
         min_radius = int(min_side * self.config['minCircleRadius'])
         max_radius = int(min_side * self.config['maxCircleRadius'])
 
-        self.circles = []
-        for i in range(int(num_circles)):
-            circle = Circle(
-                x=random.randint(0, self.config['width']),
-                y=random.randint(0, self.config['height']),
-                radius=random.randrange(min_radius, max_radius)
-            )
-            self.circles.append(circle)
-            self.apply_circle(circle)
-
-            print("Circle:", circle)
+        if self.config["distribution"] == "RANDOM":
+            for i in range(int(num_circles)):
+                circle = Circle(
+                    x=random.randint(0, self.config['width']),
+                    y=random.randint(0, self.config['height']),
+                    radius=random.randrange(min_radius, max_radius)
+                )
+                self.apply_circle(circle)
+        else:
+            print('NOPE')
         
     def generate(self):
         self.load_config()
@@ -81,7 +80,7 @@ class Sculptor:
             array = np.array(pixels, dtype=np.uint8)
             
         image = Image.fromarray(array)
-        image.save('output.png')
+        image.save('output/temp.png')
         print()
 
 if __name__ == '__main__':
