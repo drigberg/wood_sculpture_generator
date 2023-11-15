@@ -8,25 +8,27 @@ from matplotlib import cm
 import numpy as np
 from PIL import Image
 
-RANDOM_CONFIG = {
-    "random": True,
-    "branch": True,
+BASE_CONFIG = {
     "color": True,
-    "blur": 3,
     "width": 500,
     "height": 300,
+}
+
+RANDOM_CONFIG = {
+    **BASE_CONFIG,
+    "random": True,
+    "branch": True,
+    "blur": 3,
     "density": 0.8,
     "maxCircleRadius": 0.2,
     "minCircleRadius": 0.1
 }
 
 EVEN_CONFIG = {
+    **BASE_CONFIG,
     "random": False,
     "branch": True,
-    "color": True,
     "blur": 6,
-    "width": 500,
-    "height": 300,
     "density": 0.9,
     "maxCircleRadius": 0.2,
     "minCircleRadius": 0.1
