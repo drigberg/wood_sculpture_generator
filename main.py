@@ -1,10 +1,17 @@
 import json
+import math
 import random
 import sys
 
+from matplotlib import cm
+import numpy as np
+from PIL import Image
+
+
 DEFAULT_CONFIG = {
-  "width": 30,
-  "height": 30,
+  "color": False,
+  "width": 300,
+  "height": 300,
   "density": 0.1,
   "maxCircleRadius": 0.2,
   "minCircleRadius": 0.05
@@ -32,6 +39,13 @@ class Sculptor:
 
         return self.field
 
+    def apply_circle(self, circle: Circle) -> None:
+        for x in range(max(0, circle.x - circle.radius), min(self.config['width'], circle.x + circle.radius)):
+            for y in range(max(0, circle.y - circle.radius), min(self.config['height'], circle.y + circle.radius)):
+                distance = math.sqrt((circle.x - x) ** 2 + (circle.y - y) ** 2)
+                if distance < circle.radius:
+                    self.field[y][x] += 1 - distance / circle.radius 
+
     def place_circles(self):
         print()
         min_side = min(self.config['width'], self.config['height'])
@@ -47,7 +61,7 @@ class Sculptor:
                 radius=random.randrange(min_radius, max_radius)
             )
             self.circles.append(circle)
-            self.field[circle.y][circle.x] = 1
+            self.apply_circle(circle)
 
             print("Circle:", circle)
         
@@ -59,8 +73,15 @@ class Sculptor:
     
     def print(self):
         print()
-        for row in self.field:
-            print(row)
+
+        if self.config['color'] == True:
+            array = np.uint8(cm.gist_earth(self.field) * 255)
+        else:
+            pixels = [[min(255, int(p * 255)) for p in row] for row in self.field]
+            array = np.array(pixels, dtype=np.uint8)
+            
+        image = Image.fromarray(array)
+        image.save('output.png')
         print()
 
 if __name__ == '__main__':
