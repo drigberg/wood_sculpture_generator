@@ -48,7 +48,6 @@ class Sculptor:
         for i in range(len(nodes)):
             node = nodes[i]
             circle = circles[i]
-            circle_coords = np.array([circle.x, circle.y])
             others = [n for n in nodes if n[0] != node[0] or n[1] != node[1]]
             deltas = others - node
             dist = np.einsum('ij,ij->i', deltas, deltas)
@@ -108,10 +107,11 @@ class Sculptor:
         self.field = gaussian_filter(self.field, sigma=self.config['blur'])
 
     def sharpen(self):
+        # See: https://scipy-lectures.org/advanced/image_processing/auto_examples/plot_sharpen.html
         self.field = self.field + 2 * (self.field - gaussian_filter(self.field, sigma=self.config['blur']))
 
     def normalize(self):
-        self.field = (self.field - np.min(self.field))/(np.max(self.field) - np.min(self.field))
+        self.field = (self.field - np.min(self.field)) / (np.max(self.field) - np.min(self.field))
 
     def stretch(self):
         self.field = (np.array(self.field) * 100) ** 2
