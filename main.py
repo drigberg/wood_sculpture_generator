@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 
 BASE_CONFIG = {
-    "color": True,
+    "color": False,
     "width": 500,
     "height": 300,
 }
@@ -18,20 +18,20 @@ RANDOM_CONFIG = {
     **BASE_CONFIG,
     "random": True,
     "branch": True,
-    "blur": 3,
-    "density": 0.8,
-    "maxCircleRadius": 0.2,
-    "minCircleRadius": 0.1
+    "blur": 4,
+    "density": 6,
+    "maxCircleRadius": 0.05,
+    "minCircleRadius": 0.03
 }
 
 EVEN_CONFIG = {
     **BASE_CONFIG,
     "random": False,
     "branch": True,
-    "blur": 6,
+    "blur": 3,
     "density": 0.9,
-    "maxCircleRadius": 0.2,
-    "minCircleRadius": 0.1
+    "maxCircleRadius": 0.3,
+    "minCircleRadius": 0.2
 }
 
 class Circle:
@@ -39,6 +39,9 @@ class Circle:
         self.x = x
         self.y = y
         self.radius = radius
+
+    def distance(self, other) -> float:
+        return math.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
 
     def __str__(self) -> str:
         return f"x={self.x}, y={self.y}, radius={self.radius}"
@@ -87,7 +90,7 @@ class Sculptor:
 
     def place_circles(self):
         min_side = min(self.config['width'], self.config['height'])
-        num_circles = int(min_side * (self.config["minCircleRadius"] + self.config["maxCircleRadius"]) / 2 * self.config['density'] / 2)
+        num_circles = int(min_side * (1 - (self.config["minCircleRadius"] + self.config["maxCircleRadius"])) * self.config['density'] / 4)
         min_radius = int(min_side * self.config['minCircleRadius'])
         max_radius = int(min_side * self.config['maxCircleRadius'])
 
@@ -103,6 +106,16 @@ class Sculptor:
                     y=random.randint(0, self.config['height'] - 1),
                     radius=random.randrange(min_radius, max_radius)
                 )
+                attempts = 0
+                while any([c.distance(circle) < max(c.radius, circle.radius) for c in circles]):
+                    circle = Circle(
+                        x=random.randint(0, self.config['width'] - 1),
+                        y=random.randint(0, self.config['height'] - 1),
+                        radius=random.randrange(min_radius, max_radius)
+                    )
+                    attempts += 1
+                    if attempts > 10:
+                        break
                 circles.append(circle)
         else:
             # See: https://stackoverflow.com/questions/27499139/how-can-i-set-a-minimum-distance-constraint-for-generating-points-with-numpy-ran
@@ -144,11 +157,28 @@ class Sculptor:
         self.apply_branches(circles)
        
         
-    def soften(self):
-        self.field = np.clip(self.field, 0, 2)
-        self.field = (self.field - np.min(self.field))/(np.max(self.field) - np.min(self.field))
+    def blur(self):
         self.field = gaussian_filter(self.field, sigma=self.config['blur'])
+
+    def sharpen(self):
+        self.field = self.field + 2 * (self.field - gaussian_filter(self.field, sigma=self.config['blur']))
+
+    def normalize(self):
         self.field = (self.field - np.min(self.field))/(np.max(self.field) - np.min(self.field))
+
+    def stretch(self):
+        self.field = (np.array(self.field) * 100) ** 2
+
+    def clip(self):
+        self.field = np.clip(self.field, 0, 1)
+
+    def soften(self):
+        self.clip()
+        self.stretch()
+        self.blur()
+        self.normalize()
+        self.sharpen()
+        self.normalize()
 
 
     def generate(self):
