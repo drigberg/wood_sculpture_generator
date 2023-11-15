@@ -13,3 +13,7 @@ python3 -m pipenv install
 ```
 python3 -m pipenv run main.py [EVEN]
 ```
+
+## Examples
+
+<img src="./example.png">
