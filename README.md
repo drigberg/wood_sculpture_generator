@@ -11,7 +11,7 @@ python3 -m pipenv install
 ## Usage
 
 ```
-python3 -m pipenv run main.py [EVEN]
+python3 -m pipenv run main.py
 ```
 
 ## Examples
