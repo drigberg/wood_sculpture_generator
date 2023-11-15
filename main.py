@@ -8,31 +8,7 @@ from matplotlib import cm
 import numpy as np
 from PIL import Image
 
-RANDOM_CIRCLE_CONFIG = {
-    "random": True,
-    "branch": False,
-    "color": True,
-    "blur": 10,
-    "width": 500,
-    "height": 300,
-    "density": 0.9,
-    "maxCircleRadius": 0.2,
-    "minCircleRadius": 0.1
-}
-
-EVEN_CIRCLE_CONFIG = {
-    "random": False,
-    "branch": False,
-    "blur": 7,
-    "color": True,
-    "width": 500,
-    "height": 300,
-    "density": 0.9,
-    "maxCircleRadius": 0.3,
-    "minCircleRadius": 0.15
-}
-
-RANDOM_BRANCH_CONFIG = {
+RANDOM_CONFIG = {
     "random": True,
     "branch": True,
     "color": True,
@@ -44,7 +20,7 @@ RANDOM_BRANCH_CONFIG = {
     "minCircleRadius": 0.1
 }
 
-EVEN_BRANCH_CONFIG = {
+EVEN_CONFIG = {
     "random": False,
     "branch": True,
     "color": True,
@@ -87,15 +63,16 @@ class Sculptor:
             others = [n for n in nodes if n[0] != node[0] or n[1] != node[1]]
             deltas = others - node
             dist = np.einsum('ij,ij->i', deltas, deltas)
-            closest = [others[x] for x in np.argpartition(dist, 5)[:5]]
+            closest = [others[x] for x in np.argpartition(dist, 4)[:4]]
             for other in closest:
+                norm = np.linalg.norm(other-node)
                 min_x = min(node[0], other[0])
                 min_y = min(node[1], other[1])
                 max_x = max(node[0], other[0])
                 max_y = max(node[1], other[1])   
                 for x in range(max(0, min_x), min(self.config["width"], max_x)):
                     for y in range(max(0, min_y), min(self.config["height"], max_y)):
-                        d = np.linalg.norm(np.cross(other - node, node - [x, y]))/np.linalg.norm(other-node)
+                        d = np.linalg.norm(np.cross(other - node, node - [x, y])) / norm
                         self.field[y][x] += max(0, 1 - ((d / circle.radius) ** 2) * 20)
 
     def apply_circles(self, circles: list[Circle]) -> None:
@@ -108,11 +85,13 @@ class Sculptor:
 
     def place_circles(self):
         min_side = min(self.config['width'], self.config['height'])
-        num_circles = min_side * (self.config["minCircleRadius"] + self.config["maxCircleRadius"]) / 2 * self.config['density'] / 2
+        num_circles = int(min_side * (self.config["minCircleRadius"] + self.config["maxCircleRadius"]) / 2 * self.config['density'] / 2)
         min_radius = int(min_side * self.config['minCircleRadius'])
         max_radius = int(min_side * self.config['maxCircleRadius'])
 
-        if num_circles < 5:
+        print(f"Placing {num_circles} circles...")
+        
+        if num_circles < 6:
             raise Exception("Not enough circles: please adjust config")
         circles = []
         if self.config["random"] == True:
@@ -160,11 +139,8 @@ class Sculptor:
                     radius=random.randrange(min_radius, max_radius)
                 )
                 circles.append(circle)
-
-        if self.config["branch"] == True:
-            self.apply_branches(circles)
-        else:
-            self.apply_circles(circles)
+        self.apply_branches(circles)
+       
         
     def soften(self):
         self.field = np.clip(self.field, 0, 2)
@@ -192,16 +168,12 @@ class Sculptor:
 if __name__ == '__main__':
     print("Running...")
 
-    config = RANDOM_CIRCLE_CONFIG
+    config = RANDOM_CONFIG
     if len(sys.argv) > 1:
-        if sys.argv[1] == "RANDOM_CIRCLE":
-            config = RANDOM_CIRCLE_CONFIG
-        elif sys.argv[1] == "RANDOM_BRANCH":
-            config = RANDOM_BRANCH_CONFIG
-        elif sys.argv[1] == "EVEN_CIRCLE":
-            config = EVEN_CIRCLE_CONFIG
-        elif sys.argv[1] == "EVEN_BRANCH":
-            config = EVEN_BRANCH_CONFIG
+        if sys.argv[1] == "RANDOM":
+            config = RANDOM_CONFIG
+        elif sys.argv[1] == "EVEN":
+            config = EVEN_CONFIG
         else:
             raise Exception(f"Unrecognized config: {sys.argv[1]}")
 
