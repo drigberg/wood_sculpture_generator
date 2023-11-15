@@ -1,21 +1,14 @@
-import json
 import math
 import random
-import sys
 
 from scipy.ndimage import gaussian_filter
 from matplotlib import cm
 import numpy as np
 from PIL import Image
 
-BASE_CONFIG = {
-    "color": False,
+CONFIG = {
     "width": 500,
     "height": 300,
-}
-
-RANDOM_CONFIG = {
-    **BASE_CONFIG,
     "random": True,
     "branch": True,
     "blur": 4,
@@ -24,15 +17,6 @@ RANDOM_CONFIG = {
     "minCircleRadius": 0.03
 }
 
-EVEN_CONFIG = {
-    **BASE_CONFIG,
-    "random": False,
-    "branch": True,
-    "blur": 3,
-    "density": 0.9,
-    "maxCircleRadius": 0.3,
-    "minCircleRadius": 0.2
-}
 
 class Circle:
     def __init__(self, x: int, y: int, radius: int):
@@ -98,62 +82,25 @@ class Sculptor:
         
         if num_circles < 6:
             raise Exception("Not enough circles: please adjust config")
+        
         circles = []
-        if self.config["random"] == True:
-            for i in range(int(num_circles)):
+        for i in range(int(num_circles)):
+            circle = Circle(
+                x=random.randint(0, self.config['width'] - 1),
+                y=random.randint(0, self.config['height'] - 1),
+                radius=random.randrange(min_radius, max_radius)
+            )
+            attempts = 0
+            while any([c.distance(circle) < max(c.radius, circle.radius) for c in circles]):
                 circle = Circle(
                     x=random.randint(0, self.config['width'] - 1),
                     y=random.randint(0, self.config['height'] - 1),
                     radius=random.randrange(min_radius, max_radius)
                 )
-                attempts = 0
-                while any([c.distance(circle) < max(c.radius, circle.radius) for c in circles]):
-                    circle = Circle(
-                        x=random.randint(0, self.config['width'] - 1),
-                        y=random.randint(0, self.config['height'] - 1),
-                        radius=random.randrange(min_radius, max_radius)
-                    )
-                    attempts += 1
-                    if attempts > 10:
-                        break
-                circles.append(circle)
-        else:
-            # See: https://stackoverflow.com/questions/27499139/how-can-i-set-a-minimum-distance-constraint-for-generating-points-with-numpy-ran
-            # specify params
-            n = num_circles
-            shape = np.array([self.config["height"], self.config["width"]])
-            sensitivity = self.config["density"]
-
-            # compute grid shape based on number of points
-            width_ratio = shape[1] / shape[0]
-            num_y = np.int32(np.sqrt(n / width_ratio)) + 1
-            num_x = np.int32(n / num_y) + 1
-
-            # create regularly spaced neurons
-            x = np.linspace(0., shape[1]-1, num_x, dtype=np.float32)
-            y = np.linspace(0., shape[0]-1, num_y, dtype=np.float32)
-            coords = np.stack(np.meshgrid(x, y), -1).reshape(-1,2)
-
-            # compute spacing
-            init_dist = np.min((x[1]-x[0], y[1]-y[0]))
-            min_dist = init_dist * (1 - sensitivity)
-
-            assert init_dist >= min_dist
-
-            # perturb points
-            max_movement = (init_dist - min_dist)/2
-            noise = np.random.uniform(
-                low=-max_movement,
-                high=max_movement,
-                size=(len(coords), 2))
-            coords += noise
-            for coord in coords:
-                circle = Circle(
-                    x=int(min(coord[0], self.config["width"] - 1)),
-                    y=int(min(coord[1], self.config["height"] - 1)),
-                    radius=random.randrange(min_radius, max_radius)
-                )
-                circles.append(circle)
+                attempts += 1
+                if attempts > 10:
+                    break
+            circles.append(circle)
         self.apply_branches(circles)
        
         
@@ -188,28 +135,15 @@ class Sculptor:
         return self.field
     
     def print(self):
-        if self.config['color'] == True:
-            array = np.uint8(cm.gist_earth(self.field) * 255)
-        else:
-            pixels = [[min(255, int(p * 255)) for p in row] for row in self.field]
-            array = np.array(pixels, dtype=np.uint8)
-            
+        pixels = [[min(255, int(p * 255)) for p in row] for row in self.field]
+        array = np.array(pixels, dtype=np.uint8) 
         image = Image.fromarray(array)
         image.save('output/temp.png')
 
 if __name__ == '__main__':
     print("Running...")
 
-    config = RANDOM_CONFIG
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "RANDOM":
-            config = RANDOM_CONFIG
-        elif sys.argv[1] == "EVEN":
-            config = EVEN_CONFIG
-        else:
-            raise Exception(f"Unrecognized config: {sys.argv[1]}")
-
-    sculptor = Sculptor(config)
+    sculptor = Sculptor(CONFIG)
     sculptor.generate()
     sculptor.print()
     print("Done!")
