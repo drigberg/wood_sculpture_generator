@@ -9,12 +9,10 @@ from PIL import Image
 CONFIG = {
     "width": 500,
     "height": 300,
-    "random": True,
-    "branch": True,
-    "blur": 4,
-    "density": 6,
-    "maxCircleRadius": 0.05,
-    "minCircleRadius": 0.03
+    "blur": 3,
+    "density": 5,
+    "maxCircleRadius": 0.03,
+    "minCircleRadius": 0.02
 }
 
 
@@ -102,9 +100,9 @@ class Sculptor:
             circles.append(circle)
         self.apply_branches(circles)
        
-        
     def blur(self):
         self.field = gaussian_filter(self.field, sigma=self.config['blur'])
+        # self.field = np.mean([np.array(self.field), blurred], axis=0)
 
     def sharpen(self):
         # See: https://scipy-lectures.org/advanced/image_processing/auto_examples/plot_sharpen.html
@@ -119,13 +117,18 @@ class Sculptor:
     def clip(self):
         self.field = np.clip(self.field, 0, 1)
 
+    def floor(self):
+        self.field = [[v / 2 if v <= 0.2 else v for v in row] for row in self.field]
+        self.field = [[1 if v > 0.2 else v for v in row] for row in self.field]
+
     def soften(self):
         self.clip()
-        self.stretch()
         self.blur()
         self.normalize()
-        self.sharpen()
+        self.floor()
+        self.blur()
         self.normalize()
+
 
 
     def generate(self):
