@@ -102,7 +102,6 @@ class Sculptor:
        
     def blur(self):
         self.field = gaussian_filter(self.field, sigma=self.config['blur'])
-        # self.field = np.mean([np.array(self.field), blurred], axis=0)
 
     def sharpen(self):
         # See: https://scipy-lectures.org/advanced/image_processing/auto_examples/plot_sharpen.html
